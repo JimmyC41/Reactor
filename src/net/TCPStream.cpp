@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <cerrno>
 #include "TCPStream.hpp"
 
 TCPStream::TCPStream(int fd, struct sockaddr_in* address)
@@ -28,8 +29,6 @@ ssize_t TCPStream::send(char* buffer, std::size_t len)
     ssize_t bytesSent;
     do { bytesSent = ::write(m_fd, buffer, len); }
     while (bytesSent < 0 && errno == EINTR);
-    if (bytesSent < 0)
-        perror("write() failed");
     return bytesSent;
 }
 
@@ -38,7 +37,5 @@ ssize_t TCPStream::receive(char* buffer, std::size_t len)
     ssize_t bytesRead;
     do { bytesRead = ::read(m_fd, buffer, len); }
     while (bytesRead < 0 && errno == EINTR);
-    if (bytesRead < 0)
-        perror("read() failed");
     return bytesRead;
 }

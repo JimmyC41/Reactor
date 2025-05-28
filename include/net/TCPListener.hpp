@@ -11,7 +11,7 @@
 
 
 /**
- * Manages the server side socket to start listening for inbound connections.
+ * Manages the server side socket.
  */
 
 class TCPListener
@@ -22,21 +22,13 @@ private:
     bool        m_listening;
 
 public:
-    TCPListener(int port);
+    explicit TCPListener(int port);
     ~TCPListener();
 
     int start();            // Primes a socket to listen for new TCP connections
     TCPStream* accept();    // Returns a TCPStream for a client
+    int getFd() const { return m_fd; }
 
 private:
-    TCPListener() {}
+    TCPListener();
 };
-
-/**
- * listener.start()
- * 
- * while loop:
- *      TCPStream* client = listener.accept()
- *      if (client != nullptr):
- *          do_work(client)
- */

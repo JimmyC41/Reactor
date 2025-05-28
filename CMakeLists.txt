@@ -1,12 +1,17 @@
 cmake_minimum_required(VERSION 4.0.2)
+set(CMAKE_CXX_STANDARD 23)
 
 project(HTTPServer)
 
 add_executable(dummy_main main.cpp)
 
 add_subdirectory(src/net)
+add_subdirectory(src/core)
+add_subdirectory(src/conn)
 
 target_link_libraries(dummy_main
-PUBLIC
-    NetworkingModule
+    PUBLIC
+        NetworkingModule
+        CoreModule
+        ConnectionModule
 )

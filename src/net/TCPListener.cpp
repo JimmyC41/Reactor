@@ -1,3 +1,4 @@
+#include <iostream>
 #include "TCPListener.hpp"
 
 TCPListener::TCPListener(int port)
@@ -25,10 +26,6 @@ int TCPListener::start()
     int opt = 1;
     setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    // Set non-blocking bitmask
-    int flags = fcntl(m_fd, F_GETFL, 0);
-    fcntl(m_fd, F_SETFL, flags | O_NONBLOCK);
-
     // Bind the socket to all network interfaces
     struct sockaddr_in addr;
     std::memset(&addr, 0, sizeof(addr));
@@ -51,6 +48,10 @@ int TCPListener::start()
     }
 
     m_listening = true;
+    
+    std::cout << "[INFO] Server running at: " << inet_ntoa(addr.sin_addr) << ":"
+            << ntohs(addr.sin_port) << '\n';
+
     return 0;
 }
 
