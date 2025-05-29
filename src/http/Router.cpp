@@ -25,7 +25,7 @@ Response Router:: processRequest(const Request& request)
     {
         response.setStatus(200);
         response.setStatusText("Ok");
-        response.setBody(R"({"status": "up})");
+        response.setBody(R"({"status": "up"})");
         response.setHeader("Content-Type", "application/json");
     }
     else if (request.method() == "POST" && request.path() == "/echo")

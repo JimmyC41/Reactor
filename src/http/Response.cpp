@@ -17,7 +17,7 @@ std::string Response::renderString() const
     oss << "\r\n";
 
     // Body
-    oss << m_body << '\n';
+    oss << m_body;
 
     // std::cout << "----- Printing Response ------\n" << oss.str() << "\n";
     return oss.str();

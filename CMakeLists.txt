@@ -10,6 +10,8 @@ add_subdirectory(src/core)
 add_subdirectory(src/conn)
 add_subdirectory(src/http)
 
+add_subdirectory(test)
+
 target_link_libraries(dummy_main
     PUBLIC
         NetworkingModule

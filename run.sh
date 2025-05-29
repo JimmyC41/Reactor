@@ -1,4 +1,5 @@
 #! /bin/sh
 
 cd build
-./dummy_main
+./test/UnitTests
+# ./dummy_main
