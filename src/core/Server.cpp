@@ -7,8 +7,8 @@
 
 void Server::handleAccept()
 {
-    std::cout << std::format(
-        "[INFO] kevent: server socket {} is readable\n", m_listener.getFd());
+    // std::cout << std::format(
+        // "[INFO] kevent: server socket {} is readable\n", m_listener.getFd());
 
     // accept() on the listening fd, returns client fd
     auto clientStreamPtr = m_listener.accept();
@@ -28,8 +28,8 @@ void Server::handleAccept()
 
 void Server::handleRead(int clientFd)
 {
-    std::cout << std::format(
-        "[INFO] kevent: client socket {} is readable\n", clientFd);
+    // std::cout << std::format(
+        // "[INFO] kevent: client socket {} is readable\n", clientFd);
     
     auto& ctx = *m_clientMap.at(clientFd);
     
@@ -45,8 +45,8 @@ void Server::handleRead(int clientFd)
 
 void Server::handleWrite(int clientFd)
 {
-    std::cout << std::format(
-        "[INFO] kevent: client socket {} is writable\n", clientFd);
+    // std::cout << std::format(
+        // "[INFO] kevent: client socket {} is writable\n", clientFd);
     
     auto& ctx = *m_clientMap.at(clientFd);
     
@@ -60,7 +60,7 @@ void Server::handleWrite(int clientFd)
         close(clientFd);
         m_clientMap.erase(clientFd);
         
-        std::cout << std::format(
-            "[INFO] kevent: closed client socket {}\n", clientFd);
+        // std::cout << std::format(
+            // "[INFO] kevent: closed client socket {}\n", clientFd);
     }
 }

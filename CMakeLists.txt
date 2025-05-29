@@ -8,10 +8,12 @@ add_executable(dummy_main main.cpp)
 add_subdirectory(src/net)
 add_subdirectory(src/core)
 add_subdirectory(src/conn)
+add_subdirectory(src/http)
 
 target_link_libraries(dummy_main
     PUBLIC
         NetworkingModule
         CoreModule
         ConnectionModule
+        HttpModule
 )

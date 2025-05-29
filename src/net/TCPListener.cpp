@@ -48,7 +48,6 @@ int TCPListener::start()
     }
 
     m_listening = true;
-    
     std::cout << "[INFO] Server running at: " << inet_ntoa(addr.sin_addr) << ":"
             << ntohs(addr.sin_port) << '\n';
 

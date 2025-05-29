@@ -1,5 +1,7 @@
-#include "ConnectionContext.hpp"
 #include <cerrno>
+#include <iostream>
+#include "ConnectionContext.hpp"
+#include "Router.hpp"
 
 void ConnectionContext::onReadable()
 {
@@ -20,16 +22,22 @@ void ConnectionContext::onReadable()
         else
             throw std::runtime_error("[INFO] receieve error\n");
     }
-
+    
     if (!m_readBuffer.empty() && m_connState == ConnState::Reading)
     {
         m_connState = ConnState::Writing;
 
-        // TODO
-        prepareDummyResponse();
+        Request request;
+        Response response;
+
+        if (!request.parse(m_readBuffer))
+            response = Router::createBadRequest();
+        else
+            response = Router::processRequest(request);
+        
+        m_writeBuffer = response.renderString();
     }
 };
-
 
 void ConnectionContext::onWritable()
 {
