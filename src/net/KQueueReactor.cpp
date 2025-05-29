@@ -60,7 +60,7 @@ void KQueueReactor::removeClient(int fd)
     kevent(m_kq, kevs, 2, nullptr, 0, nullptr);
 }
 
-void KQueueReactor::runThreaded(EventHandler* handler)
+void KQueueReactor::run(EventHandler* handler)
 {
     struct kevent events[MAX_EVENTS];
     while (true)
@@ -91,7 +91,7 @@ void KQueueReactor::runThreaded(EventHandler* handler)
     }
 }
 
-void KQueueReactor::run(EventHandler* handler)
+void KQueueReactor::runThreaded(EventHandler* handler)
 {
     struct kevent events[MAX_EVENTS];
     while (true)
