@@ -101,3 +101,23 @@ TEST_F(RoutingTest, PostEcho)
     validateRequest(request, "POST", "/echo", "HTTP/1.1", reqBody);
     validateRenderedResponse(httpResponse, expected);
 };
+
+TEST_F(RoutingTest, RequestNotFound)
+{
+    std::string raw = 
+        "GET /invalid_path HTTP/1.1\r\n"
+        "Host: localhost\r\n"
+        "\r\n";
+    
+    std::string resBody = "";
+    std::string expected = 
+        "HTTP/1.1 404 Not Found\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: " + std::to_string(resBody.size()) + "\r\n"
+        "Connection: close\r\n\r\n" + 
+        resBody;
+    
+    auto httpResponse = getResponse(raw);
+    validateRequest(request, "GET", "/invalid_path", "HTTP/1.1", "");
+    validateRenderedResponse(httpResponse, expected);
+}
