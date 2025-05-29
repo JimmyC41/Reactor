@@ -5,6 +5,7 @@
 #include "TCPListener.hpp"
 #include "KQueueReactor.hpp"
 #include "ConnectionContext.hpp"
+#include "ThreadPool.hpp"
 
 using ClientMap = std::unordered_map<int, std::unique_ptr<ConnectionContext>>;
 
@@ -14,6 +15,7 @@ private:
     TCPListener     m_listener;
     KQueueReactor   m_reactor;
     ClientMap       m_clientMap; // Maps client fd to the respective connection context
+    ThreadPool      m_pool;
 
 public:
     Server(int port) : m_listener(port)

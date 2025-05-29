@@ -3,7 +3,7 @@
 #include <chrono>
 #include <cstring>
 #include <memory>
-#include "Server.hpp"
+#include "ServerCluster.hpp"
 
 int main()
 {
@@ -11,8 +11,8 @@ int main()
     
     try
     {
-        Server server(PORT);
-        server.run();
+        ServerCluster cluster(PORT);
+        cluster.run();
     }
     catch (const std::exception& ex)
     {

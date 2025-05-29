@@ -2,12 +2,13 @@
 
 #include <thread>
 #include <vector>
+#include <thread>
 #include <tbb/concurrent_queue.h>
 
 class ThreadPool
 {
 public:
-    ThreadPool(int numThreads);
+    ThreadPool(int numThreads = std::thread::hardware_concurrency());
     ~ThreadPool();
     void submitTask(std::function<void()> f);
 

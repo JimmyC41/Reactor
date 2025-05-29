@@ -1,5 +1,6 @@
 add_library(CoreModule
     Server.cpp
+    ServerCluster.cpp
 )
 
 target_include_directories(CoreModule

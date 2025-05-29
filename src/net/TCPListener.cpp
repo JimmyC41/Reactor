@@ -26,6 +26,14 @@ int TCPListener::start()
     int opt = 1;
     setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
+    // Allow multiple listeners on the same port
+    if (setsockopt(m_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0)
+    {
+        perror("setsockopt(SO_REUSEPORT) failed");
+        close(m_fd);
+        return -1;
+    }
+
     // Bind the socket to all network interfaces
     struct sockaddr_in addr;
     std::memset(&addr, 0, sizeof(addr));

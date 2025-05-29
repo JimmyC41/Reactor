@@ -24,7 +24,7 @@ void ConnectionContext::onReadable()
         else
         {
             const int err = errno;
-            fprintf(stderr, "recv error: %s (%d)\n", strerror(err), err);
+            // fprintf(stderr, "recv error: %s (%d)\n", strerror(err), err);
 
             switch (err)
             {

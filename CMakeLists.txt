@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 project(HTTPServer)
 
-add_executable(dummy_main main.cpp)
+add_executable(main main.cpp)
 
 add_subdirectory(src/thread)
 add_subdirectory(src/net)
@@ -13,7 +13,7 @@ add_subdirectory(src/http)
 
 add_subdirectory(test)
 
-target_link_libraries(dummy_main
+target_link_libraries(main
     PUBLIC
         ThreadModule
         NetworkingModule

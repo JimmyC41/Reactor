@@ -5,7 +5,7 @@
 #include "KQueueReactor.hpp"
 #include "EventHandler.hpp"
 
-KQueueReactor::KQueueReactor(int numWorkers) : m_threadPool(numWorkers)
+KQueueReactor::KQueueReactor()
 {
     m_kq = kqueue();
     if (m_kq < 0)
@@ -87,41 +87,6 @@ void KQueueReactor::run(EventHandler* handler)
             // Client socket is writable
             else if (filter == EVFILT_WRITE)
                 handler->handleWrite(fd);
-        }
-    }
-}
-
-void KQueueReactor::runThreaded(EventHandler* handler)
-{
-    struct kevent events[MAX_EVENTS];
-    while (true)
-    {
-        // Blocks until there is an event 'ready'
-        int noEvents = kevent(m_kq, nullptr, 0, events, MAX_EVENTS, nullptr);
-        if (noEvents < 0)
-            throw std::runtime_error("[INFO] kevent wait failed");
-        
-        for (size_t i = 0; i < noEvents; ++i)
-        {
-            auto &ev = events[i];
-            int fd = ev.ident;
-            int filter = ev.filter;
-            
-            // Reactor thread delegates to worker threads to handle networking I/O
-            m_threadPool.submitTask([this, handler, fd, filter]
-            {
-                // New client connection
-                if (fd == m_listenFd && filter == EVFILT_READ)
-                    handler->handleAccept();
-                
-                // Client socket is readable
-                else if (filter == EVFILT_READ)
-                    handler->handleRead(fd);
-                
-                // Client socket is writable
-                else if (filter == EVFILT_WRITE)
-                    handler->handleWrite(fd);
-            });
         }
     }
 }
