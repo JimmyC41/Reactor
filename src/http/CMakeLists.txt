@@ -5,6 +5,8 @@ add_library(HttpModule
 )
 
 target_include_directories(HttpModule
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/include/thread
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include/http
 )

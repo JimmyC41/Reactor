@@ -1,8 +1,10 @@
 #pragma once
 
-#include <sys/event.h>
 #include <vector>
+#include <thread>
+#include <sys/event.h>
 #include "Event.hpp"
+#include "ThreadPool.hpp"
 
 class EventHandler;
 
@@ -13,7 +15,7 @@ class EventHandler;
 class KQueueReactor
 {
 public:
-    KQueueReactor();
+    KQueueReactor(int numWorkers = (std::thread::hardware_concurrency() / 2));
     ~KQueueReactor();
 
     // Set listening socket to non-blocking and register with kqueue
@@ -21,6 +23,7 @@ public:
 
     // Wait for events and dispatch to handler
     void run(EventHandler* handler);
+    void runThreaded(EventHandler* handler);
     
     // Add a fd to watch for read/writes
     void addClient(int fd, EventFilter filter, void* udata);
@@ -28,9 +31,12 @@ public:
     // Remove a fd from watching
     void removeClient(int fd);
 
+    int listenFd() const { return m_listenFd; }
+
 private:
     int m_kq;
-    int m_listen_fd;
+    int m_listenFd;
+    ThreadPool m_threadPool;
 
     // Helper to make socket non-blocking
     void setNonBlocking(int fd);

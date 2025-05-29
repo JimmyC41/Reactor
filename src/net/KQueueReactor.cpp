@@ -5,7 +5,7 @@
 #include "KQueueReactor.hpp"
 #include "EventHandler.hpp"
 
-KQueueReactor::KQueueReactor()
+KQueueReactor::KQueueReactor(int numWorkers) : m_threadPool(numWorkers)
 {
     m_kq = kqueue();
     if (m_kq < 0)
@@ -27,7 +27,7 @@ void KQueueReactor::setNonBlocking(int fd)
 
 void KQueueReactor::setListener(int listenFd)
 {
-    m_listen_fd = listenFd;
+    m_listenFd = listenFd;
     setNonBlocking(listenFd);
 
     // Register socket for read events and clear on each delivery
@@ -60,6 +60,37 @@ void KQueueReactor::removeClient(int fd)
     kevent(m_kq, kevs, 2, nullptr, 0, nullptr);
 }
 
+void KQueueReactor::runThreaded(EventHandler* handler)
+{
+    struct kevent events[MAX_EVENTS];
+    while (true)
+    {
+        // Blocks until there is an event 'ready'
+        int noEvents = kevent(m_kq, nullptr, 0, events, MAX_EVENTS, nullptr);
+        if (noEvents < 0)
+            throw std::runtime_error("[INFO] kevent wait failed");
+        
+        for (size_t i = 0; i < noEvents; ++i)
+        {
+            auto &ev = events[i];
+            int fd = ev.ident;
+            int filter = ev.filter;
+            
+            // New client connection
+            if (fd == m_listenFd && filter == EVFILT_READ)
+                handler->handleAccept();
+                
+            // Client socket is readable
+            else if (filter == EVFILT_READ)
+                handler->handleRead(fd);
+                
+            // Client socket is writable
+            else if (filter == EVFILT_WRITE)
+                handler->handleWrite(fd);
+        }
+    }
+}
+
 void KQueueReactor::run(EventHandler* handler)
 {
     struct kevent events[MAX_EVENTS];
@@ -67,19 +98,30 @@ void KQueueReactor::run(EventHandler* handler)
     {
         // Blocks until there is an event 'ready'
         int noEvents = kevent(m_kq, nullptr, 0, events, MAX_EVENTS, nullptr);
+        if (noEvents < 0)
+            throw std::runtime_error("[INFO] kevent wait failed");
         
         for (size_t i = 0; i < noEvents; ++i)
         {
             auto &ev = events[i];
             int fd = ev.ident;
             int filter = ev.filter;
-
-            if (fd == m_listen_fd && filter == EVFILT_READ)
-                handler->handleAccept();    // New client
-            else if (filter == EVFILT_READ)
-                handler->handleRead(fd);    // Client socket is readable
-            else if (filter == EVFILT_WRITE)
-                handler->handleWrite(fd);   // Client socket is writable
+            
+            // Reactor thread delegates to worker threads to handle networking I/O
+            m_threadPool.submitTask([this, handler, fd, filter]
+            {
+                // New client connection
+                if (fd == m_listenFd && filter == EVFILT_READ)
+                    handler->handleAccept();
+                
+                // Client socket is readable
+                else if (filter == EVFILT_READ)
+                    handler->handleRead(fd);
+                
+                // Client socket is writable
+                else if (filter == EVFILT_WRITE)
+                    handler->handleWrite(fd);
+            });
         }
     }
 }
