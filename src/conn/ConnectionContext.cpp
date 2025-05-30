@@ -11,52 +11,34 @@ void ConnectionContext::onReadable()
         return;
 
     char buffer[TCP_SEGMENT_SIZE];
-
     while (true)
     {
         ssize_t n = m_stream.receive(buffer, sizeof(buffer));
 
         if (n > 0)
+        {
             m_readBuffer.append(buffer, n);
-        else if (n == 0)
+            continue;
+        }
+        if (n == 0 || errno == EPIPE || errno == ECONNRESET || errno == EBADF)
         {
             m_closedByPeer = true;
             break;
         }
-        else
-        {
-            const int err = errno;
-            switch (err)
-            {
-            case EINTR:         // Interrupted by signal
-                continue;   
-            case EWOULDBLOCK:   // No more room in socket buffer
-                break;
-            case EBADF:
-            case EPIPE:         // Peer closed connection
-            case ECONNRESET:    // Peer reset connection
-                m_closedByPeer = true;
-                break;
-            default:
-                throw std::runtime_error(
-                        std::string("[INFO] receive error: ") +
-                        strerror(err) + " (" + std::to_string(err) + ")");
-            }
-            
-            break;
-        }
+        if (errno == EINTR) continue;
+        if (errno == EWOULDBLOCK) break;
+
+        throw std::runtime_error(
+            "[INFO] receive error: " + std::string(strerror(errno)) + " (" + std::to_string(errno) + ")");
     }
+
+    // prepareDummyResponse();
 
     if (!m_readBuffer.empty() && m_connState == ConnState::Reading)
     {
         Request request;
-        Response response;
-
-        if (!request.parse(m_readBuffer))
-            response = Router::createBadRequest();
-        else
-            response = Router::processRequest(request);
-        
+        Response response = request.parse(m_readBuffer) ?
+            Router::processRequest(request) : Router::createBadRequest();
         m_writeBuffer = response.renderString();
         m_connState = ConnState::Writing;
     }
@@ -73,27 +55,13 @@ void ConnectionContext::onWritable()
             m_writeBuffer.erase(0, n);
             continue;
         }
-        else if (n == 0)
-            return;
-
-        const int err = errno;
-
-        switch (err)
-        {
-        case EINTR:
-            continue;
-        case EWOULDBLOCK:
-            return;
-        case EPIPE:
-        case ECONNRESET:
-        case EBADF:
+        if (n == 0 || errno == EPIPE || errno == ECONNRESET || errno == EBADF) {
             m_closedByPeer = true;
             return;
-
-        default:
-            throw std::runtime_error(
-                std::string("[INFO] send error: ") +
-                strerror(err) + " (" + std::to_string(err) + ")");
         }
+        if (errno == EINTR) continue;
+        if (errno == EWOULDBLOCK) return;
+        throw std::runtime_error(
+            "[INFO] send error: " + std::string(strerror(errno)) + " (" + std::to_string(errno) + ")");
     }
 }

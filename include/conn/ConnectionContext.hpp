@@ -39,4 +39,16 @@ public:
     void setConnState(ConnState state) { m_connState = state; }
 
     int getStreamFd() const { return m_stream.getFd(); }
+
+    // For testing
+    void prepareDummyResponse()
+    {
+        m_writeBuffer = 
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Length: 4\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "ACK\n";
+        m_connState = ConnState::Writing;
+    }
 };
