@@ -4,6 +4,7 @@
 #include <iostream>
 #include "KQueueReactor.hpp"
 #include "EventHandler.hpp"
+#include "ConnectionContext.hpp"
 
 KQueueReactor::KQueueReactor()
 {
@@ -38,16 +39,16 @@ void KQueueReactor::setListener(int listenFd)
         throw std::runtime_error("kevent add listener failed");
 }
 
-void KQueueReactor::addClient(int fd, EventFilter filter, void* udata)
+void KQueueReactor::addClient(int fd, EventFilter filter, void *udata)
 {
     setNonBlocking(fd);
-
-    // Register the client fd for read or write
+    
+    // Register the client fd for read or writes
     struct kevent kev;
     EV_SET(&kev, fd, filter, EV_ADD | EV_CLEAR, 0, 0, udata);
 
     if (kevent(m_kq, &kev, 1, nullptr, 0, nullptr) < 0)
-        throw std::runtime_error("kevent add fd failed");
+        throw std::runtime_error("kevent EV_ADD failed");
 }
 
 void KQueueReactor::removeClient(int fd)
@@ -75,18 +76,26 @@ void KQueueReactor::run(EventHandler* handler)
             auto &ev = events[i];
             int fd = ev.ident;
             int filter = ev.filter;
-            
+            auto *ctx = static_cast<ConnectionContext*>(ev.udata);
+
             // New client connection
             if (fd == m_listenFd && filter == EVFILT_READ)
                 handler->handleAccept();
-                
+                        
             // Client socket is readable
             else if (filter == EVFILT_READ)
-                handler->handleRead(fd);
-                
+                handler->handleRead(ctx);
+            
+            /*
+            {
+                m_pool.submitTask([this, ctx, filter, handler]
+                    { handler->handleRead(ctx); });
+            }
+            */
+
             // Client socket is writable
             else if (filter == EVFILT_WRITE)
-                handler->handleWrite(fd);
+                handler->handleWrite(ctx);
         }
     }
 }

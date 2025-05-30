@@ -12,7 +12,8 @@ private:
     std::vector<std::thread> m_threads;
 
 public:
-    ServerCluster(int port, int instances = std::thread::hardware_concurrency());    
+    ServerCluster(int port,
+        int instances = std::thread::hardware_concurrency());    
     ~ServerCluster();
     
     void run();

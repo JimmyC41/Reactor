@@ -26,35 +26,57 @@ void Server::handleAccept()
     m_clientMap[clientFd] = std::move(context);
 }
 
-void Server::handleRead(int clientFd)
+void Server::handleRead(ConnectionContext* ctx)
 {
+    int clientFd = ctx->getStreamFd();
+
     // std::cout << std::format(
         // "[INFO] kevent: client socket {} is readable\n", clientFd);
     
-    auto& ctx = *m_clientMap.at(clientFd);
-    
     // Receive in read buffer, prepare response in write buffer
-    ctx.onReadable();
-    
+    ctx->onReadable();
+
     // Register the client fd for writes
-    if (ctx.wantsWrite())
+    if (ctx->writeReady())
+        m_reactor.addClient(clientFd, EventFilter::Writable, ctx);
+
+    /*
+    
+    // Register the client for write if connection context has received and prepared write buffer
+    if (ctx->writeReady())
     {
-        m_reactor.addClient(clientFd, EventFilter::Writable, &ctx);
+        m_reactor.addClient(clientFd, EventFilter::Writable, ctx);
     }
+
+    // Register the client for further reads if not finished reading
+    else if (!ctx->isClosedByPeer())
+    {   
+        m_reactor.addClient(clientFd, EventFilter::Readable, ctx);
+    }
+
+    // Terminate the connection if closed by peer
+    else
+    {
+        m_reactor.removeClient(clientFd);
+        m_clientMap.erase(clientFd);
+        close(clientFd);
+    }
+
+    */
 }
 
-void Server::handleWrite(int clientFd)
+void Server::handleWrite(ConnectionContext* ctx)
 {
+    int clientFd = ctx->getStreamFd();
+
     // std::cout << std::format(
         // "[INFO] kevent: client socket {} is writable\n", clientFd);
     
-    auto& ctx = *m_clientMap.at(clientFd);
-    
     // Flush write buffer
-    ctx.onWritable();
+    ctx->onWritable();
 
-    // On writing finish or peer close, clean up
-    if (!ctx.wantsWrite() || ctx.isClosedByPeer())
+     // On writing finish or peer close, clean up
+    if (!ctx->writeReady() || ctx->isClosedByPeer())
     {
         m_reactor.removeClient(clientFd);
         close(clientFd);
@@ -63,4 +85,21 @@ void Server::handleWrite(int clientFd)
         // std::cout << std::format(
             // "[INFO] kevent: closed client socket {}\n", clientFd);
     }
+    
+    /*
+    // Register the client for readfs if writes have flushed (recall connection is 'keep-alive')
+    else if (ctx->isClosedByPeer())
+    {
+        ctx->setConnState(ConnState::Reading);
+        m_reactor.addClient(clientFd, EventFilter::Readable, ctx);
+    }
+
+    // Terminate the connection if closed by peer
+    else
+    {
+        m_reactor.removeClient(clientFd);
+        m_clientMap.erase(clientFd);
+        close(clientFd);
+    }
+    */
 }

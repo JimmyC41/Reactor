@@ -23,9 +23,9 @@ public:
     ssize_t send(char* buffer, std::size_t len);
     ssize_t receive(char* buffer, std::size_t len);
 
-    int getFd() { return m_fd; }
-    std::string getPeerIP() { return m_peerIP; }
-    int getPeerPort() { return m_peerPort; }
+    int getFd() const { return m_fd; }
+    std::string getPeerIP() const { return m_peerIP; }
+    int getPeerPort() const { return m_peerPort; }
 
 private:
     TCPStream();

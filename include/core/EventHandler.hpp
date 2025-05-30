@@ -1,5 +1,7 @@
 #pragma once
 
+class ConnectionContext;
+
 class EventHandler
 {
 public:
@@ -7,6 +9,6 @@ public:
 
     // Accept client connection, create a connection context, register with kqueue
     virtual void handleAccept() = 0;
-    virtual void handleRead(int fd) = 0;
-    virtual void handleWrite(int fd) = 0;
+    virtual void handleRead(ConnectionContext* ctx) = 0;
+    virtual void handleWrite(ConnectionContext* ctx) = 0;
 };

@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <sys/socket.h>
 #include <cerrno>
 #include "TCPStream.hpp"
 
@@ -14,6 +15,12 @@ TCPStream::TCPStream(int fd, struct sockaddr_in* address)
         ip,
         sizeof(ip)
     );
+
+    // MSG_NOSIGNAL to suppress SIGPIPE, a fatal error when a socket
+    // tries to write when the peer already closed its end
+    // int on = 1;
+    // setsockopt(m_fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
+
     m_peerIP = ip;
     m_peerPort = ntohs(address->sin_port);
 }

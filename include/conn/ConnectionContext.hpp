@@ -29,23 +29,14 @@ public:
     // fd is writable: flush write buffer
     void onWritable();
 
-    bool wantsWrite() const {
+    bool writeReady() const {
         return m_connState == ConnState::Writing 
             && !m_writeBuffer.empty();
     }
 
     bool isClosedByPeer() const { return m_closedByPeer; }
 
-private:
+    void setConnState(ConnState state) { m_connState = state; }
 
-    // For testing only
-    void prepareDummyResponse()
-    {
-        m_writeBuffer = 
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Length: 4\r\n"
-            "Connection: close\r\n"
-            "\r\n"
-            "ACK\n";
-    }
+    int getStreamFd() const { return m_stream.getFd(); }
 };

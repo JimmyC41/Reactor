@@ -26,7 +26,7 @@ int TCPListener::start()
     int opt = 1;
     setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    // Allow multiple listeners on the same port
+    // Allow multiple listeners on the same port (required for server cluster to run)
     if (setsockopt(m_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0)
     {
         perror("setsockopt(SO_REUSEPORT) failed");

@@ -10,8 +10,8 @@ add_subdirectory(src/net)
 add_subdirectory(src/core)
 add_subdirectory(src/conn)
 add_subdirectory(src/http)
-
 add_subdirectory(test)
+
 
 target_link_libraries(main
     PUBLIC
@@ -21,3 +21,4 @@ target_link_libraries(main
         ConnectionModule
         HttpModule
 )
+

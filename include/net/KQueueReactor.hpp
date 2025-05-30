@@ -4,6 +4,7 @@
 #include <thread>
 #include <sys/event.h>
 #include "Event.hpp"
+// #include "ThreadPool.hpp"
 
 class EventHandler;
 
@@ -23,7 +24,7 @@ public:
     // Wait for events and dispatch to handler
     void run(EventHandler* handler);
     
-    // Add a fd to watch for read/writes
+    // Add a fd to watch for read/writes, EV_ONESHOT set  
     void addClient(int fd, EventFilter filter, void* udata);
 
     // Remove a fd from watching
@@ -34,10 +35,11 @@ public:
 private:
     int m_kq;
     int m_listenFd;
+    // ThreadPool m_pool;
 
     // Helper to make socket non-blocking
     void setNonBlocking(int fd);
 
     // Buffer for events
-    static const int MAX_EVENTS = 10500;
+    static const int MAX_EVENTS = 1024;
 };

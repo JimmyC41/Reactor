@@ -29,6 +29,6 @@ public:
 
     void run() { m_reactor.run(this); }
     void handleAccept() override;
-    void handleRead(int clientFd) override;
-    void handleWrite(int clientFd) override;
+    void handleRead(ConnectionContext* clientFd) override;
+    void handleWrite(ConnectionContext* clientFd) override;
 };
