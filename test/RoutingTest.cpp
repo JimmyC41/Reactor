@@ -47,7 +47,7 @@ TEST_F(RoutingTest, GetHello)
     
     std::string reqBody = "Hello World!";
     std::string expected = 
-        "HTTP/1.1 200 Ok\r\n"
+        "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/plain\r\n"
         "Content-Length: " + std::to_string(reqBody.size()) + "\r\n"
         "Connection: close\r\n\r\n" + 
@@ -67,7 +67,7 @@ TEST_F(RoutingTest, GetHealth)
     
     std::string resBody = R"({"status": "up"})";
     std::string expected = 
-        "HTTP/1.1 200 Ok\r\n"
+        "HTTP/1.1 200 OK\r\n"
         "Content-Type: application/json\r\n"
         "Content-Length: " + std::to_string(resBody.size()) + "\r\n"
         "Connection: close\r\n\r\n"+
@@ -90,7 +90,7 @@ TEST_F(RoutingTest, PostEcho)
         reqBody;
 
     std::string expected =
-        "HTTP/1.1 200 Ok\r\n"
+        "HTTP/1.1 200 OK\r\n"
         "Content-Type: application/json\r\n"
         "Content-Length: " + std::to_string(reqBody.size()) + "\r\n"
         "Connection: close\r\n"

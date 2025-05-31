@@ -4,6 +4,10 @@ add_library(HttpModule
     Router.cpp
 )
 
+target_link_libraries(HttpModule
+    spdlog::spdlog
+)
+
 target_include_directories(HttpModule
     PRIVATE
         ${CMAKE_SOURCE_DIR}/include/thread

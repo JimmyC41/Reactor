@@ -1,8 +1,18 @@
 #include <iostream>
+#include <format>
+#include <cstring>
+#include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <spdlog/spdlog.h>
 #include "TCPListener.hpp"
 
+
 TCPListener::TCPListener(int port)
-    : m_fd(0), m_port(port), m_listening(false) {}
+    : m_fd(0)
+    , m_port(port)
+    , m_listening(false) {}
 
 TCPListener::~TCPListener()
 {
@@ -10,31 +20,32 @@ TCPListener::~TCPListener()
         close(m_fd);
 }
 
-int TCPListener::start()
-{
-    if (m_listening == true)
+int TCPListener::start() {
+    if (m_listening)
         return 0;
-    
+
     m_fd = ::socket(AF_INET, SOCK_STREAM, 0);
     if (m_fd < 0)
     {
-        perror("socket() failed");
+        spdlog::error("Server socket() failed: {} ({})", strerror(errno), errno);
         return -1;
     }
 
-    // Allow immediate re-binding of the port on kill
     int opt = 1;
+    
+    // Allow socket to bind to address in TIME_WAIT
     setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    // Allow multiple listeners on the same port (required for server cluster to run)
-    if (setsockopt(m_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0)
-    {
-        perror("setsockopt(SO_REUSEPORT) failed");
-        close(m_fd);
-        return -1;
-    }
+    // Allow multiple sockets to bind to the same port (load balancing)
+    setsockopt(m_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
 
-    // Bind the socket to all network interfaces
+    // Prevent fatal error when writing to a closed socket, EPIPE errno returned instead
+    setsockopt(m_fd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+
+    // Disable batching of small packets for latency
+    setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
+
+    // Set up an IPv4 socket address
     struct sockaddr_in addr;
     std::memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
@@ -43,44 +54,36 @@ int TCPListener::start()
 
     if (bind(m_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
     {
-        perror("bind() failed");
+        spdlog::error("Server close() failed: {} ({})", strerror(errno), errno);
         close(m_fd);
         return -1;
     }
 
     if (listen(m_fd, SOMAXCONN) < 0)
     {
-        perror("listen() failed");
+        spdlog::error("Server listen() failed: {} ({})", strerror(errno), errno);
         close(m_fd);
         return -1;
     }
 
     m_listening = true;
-    std::cout << "[INFO] Server running at: " << inet_ntoa(addr.sin_addr) << ":"
-            << ntohs(addr.sin_port) << '\n';
-
     return 0;
 }
 
-TCPStream* TCPListener::accept()
-{
+std::unique_ptr<TCPStream> TCPListener::accept() {
     if (!m_listening)
-        return nullptr;
-    
-    struct sockaddr_in peerAddr;
-    socklen_t len = sizeof(peerAddr);
-
-    // On the listening socket identified by m_fd, accept the next pending connection
-    // clientFd is the client's fd and is paired to the client IP and port
-    int clientFd = ::accept(m_fd, (struct sockaddr*)& peerAddr, &len);
-    if (clientFd < 0)
     {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return nullptr;
-        
-        perror("accept() failed");
+        spdlog::error("Server not listening, but accept called");
         return nullptr;
     }
 
-    return new TCPStream(clientFd, &peerAddr);
+    struct sockaddr_in peerAddr;
+    socklen_t len = sizeof(peerAddr);
+
+    int clientFd;
+    while ((clientFd = ::accept(m_fd, (struct sockaddr*)&peerAddr, &len)) < 0 && errno == EINTR);
+
+    if (clientFd < 0)
+        return nullptr;
+    return std::make_unique<TCPStream>(clientFd, &peerAddr);
 }

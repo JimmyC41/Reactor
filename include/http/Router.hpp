@@ -2,8 +2,9 @@
 #include "Request.hpp"
 #include "Response.hpp"
 
-struct Router
-{  
-    static Response createBadRequest();
+class Router
+{
+public:
     static Response processRequest(const Request& request);
+    static Response createBadRequest();
 };

@@ -1,26 +1,24 @@
 #pragma once
-
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
-using U_Map = std::unordered_map<std::string, std::string>;
+using u_map = std::unordered_map<std::string, std::string>;
 
-struct Request
-{
-    std::string m_method;
-    std::string m_path;
-    std::string m_version;
-    U_Map       m_headers;
-    std::string m_body;
+class Request {
+private:
+    std::string_view    m_method;
+    std::string_view    m_path;
+    std::string_view    m_version;
+    u_map               m_headers;
+    std::string         m_body;
 
-    std::string method() const { return m_method; }
-    std::string path() const { return m_path; }
-    std::string version() const { return m_version; }
-    std::string body() const { return m_body; }
+public:
+    bool parse(std::string_view raw);
 
-    // Returns false if raw string is not formatted correctly
-    bool parse(const std::string& raw);
-
-    // For testing
-    void printParsedRequest() const;
+    std::string_view method() const { return m_method; }
+    std::string_view path() const { return m_path; }
+    std::string_view version() const { return m_version; }
+    const u_map& headers() const { return m_headers; }
+    const std::string& body() const { return m_body; }
 };

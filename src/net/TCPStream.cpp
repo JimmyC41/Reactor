@@ -1,48 +1,57 @@
-#include <arpa/inet.h>
-#include <sys/socket.h>
 #include <cerrno>
+#include <iostream>
+#include <format>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <spdlog/spdlog.h>
 #include "TCPStream.hpp"
 
-TCPStream::TCPStream(int fd, struct sockaddr_in* address)
+TCPStream::TCPStream(int fd, struct sockaddr_in* peerAddr)
     : m_fd(fd)
 {
-    char ip[50];
+    int opt = 1;
 
-    // Convert socket info to an IP string and port
-    inet_ntop(
-        AF_INET,
-        &address->sin_addr,
-        ip,
-        sizeof(ip)
-    );
+    // // Prevent fatal error when writing to a closed socket, EPIPE errno returned instead
+    setsockopt(m_fd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 
-    // MSG_NOSIGNAL to suppress SIGPIPE, a fatal error when a socket
-    // tries to write when the peer already closed its end
-    // int on = 1;
-    // setsockopt(m_fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
-
-    m_peerIP = ip;
-    m_peerPort = ntohs(address->sin_port);
+    m_peerIP = inet_ntoa(peerAddr->sin_addr);
+    m_peerPort = ntohs(peerAddr->sin_port);
 }
 
 TCPStream::~TCPStream()
 {
-    close(m_fd);
+    if (m_fd >= 0)
+        close(m_fd);
 }
 
-ssize_t TCPStream::send(char* buffer, std::size_t len)
+ssize_t TCPStream::send(const char* buffer, size_t len)
 {
-    // Kernel looks up the fd's {clientIP, clientPort, ...} tuple to send
-    ssize_t bytesSent;
-    do { bytesSent = ::write(m_fd, buffer, len); }
-    while (bytesSent < 0 && errno == EINTR);
-    return bytesSent;
+    return ::send(m_fd, buffer, len, 0);
 }
 
-ssize_t TCPStream::receive(char* buffer, std::size_t len)
+ssize_t TCPStream::receive(char* buffer, size_t len)
 {
-    ssize_t bytesRead;
-    do { bytesRead = ::read(m_fd, buffer, len); }
-    while (bytesRead < 0 && errno == EINTR);
-    return bytesRead;
+    return ::recv(m_fd, buffer, len, 0);
+}
+
+TCPStream::TCPStream(TCPStream&& other) noexcept
+    : m_fd(other.m_fd)
+    , m_peerIP(std::move(other.m_peerIP))
+    , m_peerPort(other.m_peerPort)
+{
+    other.m_fd = -1;
+}
+
+TCPStream& TCPStream::operator=(TCPStream&& other) noexcept
+{
+    if (this != &other)
+    {
+        if (m_fd >= 0) close(m_fd);
+        m_fd = other.m_fd;
+        m_peerIP = std::move(other.m_peerIP);
+        m_peerPort = other.m_peerPort;
+        other.m_fd = -1;
+    }
+    return *this;
 }

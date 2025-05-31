@@ -1,105 +1,72 @@
 #include <iostream>
 #include <memory>
 #include <format>
+#include <unistd.h>
 #include "Server.hpp"
-#include "Event.hpp"
-#include "ConnectionContext.hpp"
+#include "Logger.hpp"
 
-void Server::handleAccept()
+Server::Server(int port) : m_listener(port)
 {
-    // std::cout << std::format(
-        // "[INFO] kevent: server socket {} is readable\n", m_listener.getFd());
+    Logger::initialize("logs/server.log", m_logFileSize, m_logFileCount);
+    m_listener.start();
+    m_reactor.setListener(m_listener.getFd());
+    spdlog::info("Server listening on port {}", port);
+}
 
-    // accept() on the listening fd, returns client fd
-    auto clientStreamPtr = m_listener.accept();
-    if (!clientStreamPtr)
+void Server::handleAccept() {
+    if (m_clientMap.size() >= m_maxConnections)
+    {
+        spdlog::error("Max connections reached, rejecting");
         return;
+    }
 
-    // Create a ConnectionContext for the new client
-    auto context = std::make_unique<ConnectionContext>(clientStreamPtr);
+    auto clientStreamPtr = std::unique_ptr<TCPStream>(m_listener.accept());
+    if (!clientStreamPtr)
+        throw std::runtime_error("TCPStream::accept() returned nullptr");
+
     auto clientFd = clientStreamPtr->getFd();
-    
-    // Register the client (fd + context) with the kqueue reactor
-    m_reactor.addClient(clientFd, Readable, context.get());
-
-    // Track client fd and connection context for subsequent read/writes
-    m_clientMap[clientFd] = std::move(context);
+    try
+    {
+        auto context = std::make_unique<ConnectionContext>(clientStreamPtr.get());
+        m_reactor.addClient(clientFd, EventFilter::Readable, context.get());
+        m_clientMap[clientFd] = std::move(context);
+    } catch (const std::exception& e)
+    {
+        spdlog::error("[fd {}] Failed to register client fd: {}", clientFd, e.what());
+    }
 }
 
-void Server::handleRead(ConnectionContext* ctx)
-{
+void Server::handleRead(ConnectionContext* ctx) {
     int clientFd = ctx->getStreamFd();
 
-    // std::cout << std::format(
-        // "[INFO] kevent: client socket {} is readable\n", clientFd);
-    
-    // Receive in read buffer, prepare response in write buffer
+    // Receive raw bytes, process, write response to write buffer
     ctx->onReadable();
-
-    // Register the client fd for writes
-    if (ctx->writeReady())
-        m_reactor.addClient(clientFd, EventFilter::Writable, ctx);
-
-    /*
     
-    // Register the client for write if connection context has received and prepared write buffer
+    // Queue the client fd to be writable
     if (ctx->writeReady())
-    {
-        m_reactor.addClient(clientFd, EventFilter::Writable, ctx);
-    }
+        m_reactor.queueEventChange(clientFd, EventFilter::Writable, EV_ADD | EV_CLEAR, ctx);
 
-    // Register the client for further reads if not finished reading
-    else if (!ctx->isClosedByPeer())
-    {   
-        m_reactor.addClient(clientFd, EventFilter::Readable, ctx);
-    }
-
-    // Terminate the connection if closed by peer
-    else
-    {
-        m_reactor.removeClient(clientFd);
-        m_clientMap.erase(clientFd);
-        close(clientFd);
-    }
-
-    */
+    // OR clean up the connection if client has closed
+    // when n == 0 (graceful close) or n < 0 (read error)
+    else if (ctx->isClosedByPeer())
+        unsubscribeClient(clientFd);
 }
 
-void Server::handleWrite(ConnectionContext* ctx)
-{
+void Server::handleWrite(ConnectionContext* ctx) {
     int clientFd = ctx->getStreamFd();
 
-    // std::cout << std::format(
-        // "[INFO] kevent: client socket {} is writable\n", clientFd);
-    
-    // Flush write buffer
+    // Write to client
     ctx->onWritable();
 
-     // On writing finish or peer close, clean up
-    if (!ctx->writeReady() || ctx->isClosedByPeer())
-    {
-        m_reactor.removeClient(clientFd);
-        close(clientFd);
-        m_clientMap.erase(clientFd);
-        
-        // std::cout << std::format(
-            // "[INFO] kevent: closed client socket {}\n", clientFd);
-    }
-    
-    /*
-    // Register the client for readfs if writes have flushed (recall connection is 'keep-alive')
-    else if (ctx->isClosedByPeer())
-    {
-        ctx->setConnState(ConnState::Reading);
-        m_reactor.addClient(clientFd, EventFilter::Readable, ctx);
-    }
+    // Clean up connection if write was successful
+    if (ctx->isClosedByPeer() || !ctx->writeReady())
+        unsubscribeClient(clientFd);
+}
 
-    // Terminate the connection if closed by peer
-    else
-    {
-        m_reactor.removeClient(clientFd);
-        m_clientMap.erase(clientFd);
-        close(clientFd);
-    }
-    */
+void Server::unsubscribeClient(int clientFd)
+{
+    m_reactor.queueEventChange(clientFd, EventFilter::Readable, EV_DELETE, nullptr, true);
+    m_reactor.queueEventChange(clientFd, EventFilter::Writable, EV_DELETE, nullptr, false);
+    m_clientMap.erase(clientFd);
+    spdlog::info("[fd {}] Queued client to be unsubscribed", clientFd);
 }

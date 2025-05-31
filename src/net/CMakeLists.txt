@@ -16,4 +16,5 @@ target_include_directories(NetworkingModule
 target_link_libraries(NetworkingModule
     PUBLIC
         ThreadModule
+        spdlog::spdlog
 )

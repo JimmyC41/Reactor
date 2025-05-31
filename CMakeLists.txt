@@ -3,6 +3,8 @@ set(CMAKE_CXX_STANDARD 23)
 
 project(HTTPServer)
 
+find_package(spdlog REQUIRED)
+
 add_executable(main main.cpp)
 
 add_subdirectory(src/thread)

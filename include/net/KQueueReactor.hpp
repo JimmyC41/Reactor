@@ -1,45 +1,37 @@
 #pragma once
-
 #include <vector>
-#include <thread>
 #include <sys/event.h>
 #include "Event.hpp"
-// #include "ThreadPool.hpp"
 
 class EventHandler;
 
-/**
- * Manages the kernel event queue
- */
+using kevVector = std::vector<struct kevent>;
 
 class KQueueReactor
 {
+private:
+    int                 m_kq;
+    int                 m_listenFd;
+    kevVector           m_pendingChanges;
+    std::vector<int>    m_pendingClosures;
+
+    static constexpr int MAX_EVENTS = 4096;
+    
+    void setNonBlocking(int fd);
+    void batchUpdate();
+
 public:
     KQueueReactor();
     ~KQueueReactor();
 
-    // Set listening socket to non-blocking and register with kqueue
     void setListener(int listenFd);
-
-    // Wait for events and dispatch to handler
     void run(EventHandler* handler);
-    
-    // Add a fd to watch for read/writes, EV_ONESHOT set  
     void addClient(int fd, EventFilter filter, void* udata);
-
-    // Remove a fd from watching
-    void removeClient(int fd);
-
     int listenFd() const { return m_listenFd; }
 
-private:
-    int m_kq;
-    int m_listenFd;
-    // ThreadPool m_pool;
-
-    // Helper to make socket non-blocking
-    void setNonBlocking(int fd);
-
-    // Buffer for events
-    static const int MAX_EVENTS = 1024;
+    // closeAfter is a flag to close the fd after applying the event change
+    void queueEventChange(
+        int fd, EventFilter filter, int flags,
+        void* udata, bool closeAfter = false
+    );
 };

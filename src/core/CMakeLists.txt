@@ -1,6 +1,10 @@
 add_library(CoreModule
     Server.cpp
-    ServerCluster.cpp
+)
+
+target_link_libraries(CoreModule
+    PUBLIC
+        spdlog::spdlog
 )
 
 target_include_directories(CoreModule
@@ -8,12 +12,7 @@ target_include_directories(CoreModule
         ${CMAKE_SOURCE_DIR}/include/net
         ${CMAKE_SOURCE_DIR}/include/conn
         ${CMAKE_SOURCE_DIR}/include/http
-        ${CMAKE_SOURCE_DIR}/include/thread
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include/core
-)
-
-target_link_libraries(CoreModule
-    PRIVATE
-        ThreadModule
+        ${CMAKE_SOURCE_DIR}/include/log
 )
