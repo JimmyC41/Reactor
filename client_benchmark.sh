@@ -12,4 +12,4 @@ if ! nc -z localhost 8080; then
     exit 1
 fi
 
-wrk -c5k -d30s --latency -H "Connection: close" http://127.0.0.1:8080/hello
+wrk -t2 -c5k -d30s --latency -H "Connection: close" http://127.0.0.1:8080/hello
