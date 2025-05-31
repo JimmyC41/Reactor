@@ -7,7 +7,6 @@ add_library(NetworkingModule
 target_include_directories(NetworkingModule
     PRIVATE
         ${CMAKE_SOURCE_DIR}/include/core
-        ${CMAKE_SOURCE_DIR}/include/thread
         ${CMAKE_SOURCE_DIR}/include/conn
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include/net
@@ -15,6 +14,5 @@ target_include_directories(NetworkingModule
 
 target_link_libraries(NetworkingModule
     PUBLIC
-        ThreadModule
         spdlog::spdlog
 )
